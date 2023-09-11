@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jaeger-test-deployment
+  namespace: observability
+  annotations:
+    sidecar.jaegertracing.io/inject: "true"
+spec:
+  selector:
+    matchLabels:
+      app: test-deployment
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: test-deployment
+    spec:
+      containers:
+      - name: jaeger-test-deployment
+        image: jaegertracing/example-hotrod:1.28
+        ports:
+          - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jaeger-test-deployment
+  namespace: observability
+  labels:
+    app: test-deployment
+spec:
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+  selector:
+    app: test-deployment
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: jaeger-test-ingress
+  namespace: observability
+  annotations:
+    kubernetes.io/ingress.class: "gce"
+spec:
+  rules:
+  - http:
+      paths:
+      - path: "/*"
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: jaeger-test-deployment
+            port:
+              number: 80
